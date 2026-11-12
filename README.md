@@ -4,7 +4,7 @@
 
 Deutsche Desktopoberfläche · lokale Benutzerkonten · frei wählbarer Speicherort · Ordnerzugriff für LibreOffice und andere Programme.
 
-> Version 0.1.0 ist eine erste, überprüfbare Vorabversion. Die Containererstellung wurde mit echtem VeraCrypt 1.26.31 getestet. Ein vollständiger Test von Systemfreigabe, Einhängen, LibreOffice und Aushängen auf einem Linux-Mint-Desktop steht noch aus.
+> Version 0.1.1 behebt den direkten Start von `app.py`. Die Containererstellung wurde mit echtem VeraCrypt 1.26.31 getestet. Ein vollständiger Test von Systemfreigabe, Einhängen, LibreOffice und Aushängen auf einem Linux-Mint-Desktop steht noch aus.
 
 ![MintTresor Startseite](docs/startseite.png)
 
@@ -70,11 +70,21 @@ Ein fehlgeschlagener Erstellungsvorgang kann eine unvollständige `.hc`-Datei hi
 
 ## Entwicklung und Prüfungen
 
-Ohne Installation starten:
+Ohne Installation im entpackten Projektordner starten:
 
 ```bash
 python3 -m minttresor
 ```
+
+Alternativ lässt sich die Datei direkt starten, auch mit einem absoluten Pfad:
+
+```bash
+python3 minttresor/app.py
+```
+
+`python3 -m minttresor.app` funktioniert ebenfalls. Die Befehle in einem Terminal der grafischen Linux-Sitzung ausführen. Falls die Oberfläche fehlt, `sudo apt install python3-tk` ausführen. Nach einem Update bei bereits installierter Anwendung `bash install.sh` erneut ausführen; die vorhandenen Konten und Tresore bleiben dabei erhalten.
+
+In Version 0.1.0 fehlte in `app.py` der Aufruf des Startprogramms. Der Modulstart endete deshalb ohne Fenster. Beim direkten Dateistart scheiterte außerdem der relative Import. Beide Startwege sind ab 0.1.1 korrigiert.
 
 Automatisierte Tests ohne VeraCrypt oder Root-Rechte:
 
@@ -83,6 +93,8 @@ python3 -m unittest discover -s tests -v
 ```
 
 Abgedeckt sind Anmeldung, falsche Passwörter, doppelte Namen, Passwortvalidierung, Speicherpfade, Dateirechte, fehlgeschlagene Erstellung, Platzmangel und sicherheitsrelevante VeraCrypt-Aufrufe. Die Adaptertests simulieren Systemaufrufe. Zusätzlich wurde lokal ein echter 1-GiB-Container mit VeraCrypt 1.26.31 erstellt und die Oberfläche unter Xvfb durchlaufen.
+
+Die Starttests prüfen alle drei Startwege auf ein tatsächlich sichtbares Fenster und laufende Ereignisverarbeitung. Dafür ist ein Desktop oder Xvfb nötig; ohne `DISPLAY` wird dieser Test übersprungen. In GitHub Actions läuft die vollständige Suite mit `xvfb-run -a python -m unittest discover -s tests -v`. Außerdem wird geprüft, dass beim Start ohne grafische Sitzung eine verständliche Fehlermeldung und ein Fehlerstatus zurückgegeben werden.
 
 Vor Freigabe für wichtige Daten auf Linux Mint prüfen:
 

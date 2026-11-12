@@ -1,12 +1,24 @@
+#!/usr/bin/env python3
 """German, local-only desktop interface."""
 import fcntl
 import queue
 import threading
-import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
 import webbrowser
 
-from .core import Store, UserError, VeraCrypt
+try:
+    import tkinter as tk
+    from tkinter import filedialog, messagebox, ttk
+except ImportError:
+    raise SystemExit('Die Oberfläche fehlt. Bitte installieren: sudo apt install python3-tk')
+
+if __package__ in (None, ''):
+    # A file launch has no package context, including when started from another folder.
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from minttresor.core import Store, UserError, VeraCrypt
+else:
+    from .core import Store, UserError, VeraCrypt
 
 
 class App:
@@ -227,6 +239,14 @@ class App:
 
 
 def main():
-    root = tk.Tk()
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        raise SystemExit('MintTresor konnte kein Fenster öffnen. Bitte in der grafischen '
+                         'Linux-Sitzung starten und prüfen, ob Tkinter installiert ist.')
     App(root)
     root.mainloop()
+
+
+if __name__ == '__main__':
+    main()
