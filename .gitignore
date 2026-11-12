@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+*.hc
+*.sqlite3*
+.venv/
+dist/
