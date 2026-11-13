@@ -127,7 +127,7 @@ class App:
         self.button('Anmelden und Tresor öffnen', self.sign_in)
         self.button('Neuen Benutzer anlegen', self.register_view)
         self.button('Einrichtung & Speicherort', self.settings)
-        ttk.Label(self.frame, text='Zum Öffnen fragt Linux zusätzlich nach deiner Systemberechtigung.\nDas Systempasswort kann vom Tresorpasswort abweichen.', wraplength=670).pack(anchor='w', pady=15)
+        ttk.Label(self.frame, text='Nach einmaliger Einrichtung durch den Administrator benötigst du\nnur dein persönliches Tresorpasswort.', wraplength=670).pack(anchor='w', pady=15)
         self.status()
         entry.focus_set()
 
@@ -143,7 +143,7 @@ class App:
         def action():
             self.backend.open(user, password)
             return user
-        self.work(action, self.dashboard, 'Tresor wird geöffnet … Bitte die Linux-Systemabfrage bestätigen.')
+        self.work(action, self.dashboard, 'Tresor wird geöffnet …')
 
     def register_view(self):
         self.clear('Ein Platz nur für dich.', 'Benutzername und Passwort genügen. Jeder Benutzer erhält einen eigenen verschlüsselten Tresor.')
@@ -183,6 +183,7 @@ class App:
     def settings(self):
         self.clear('Einmal einrichten. Loslegen.', '1. VeraCrypt installieren. 2. Speicherort wählen. 3. Benutzer anlegen.')
         ttk.Label(self.frame, text=('✓ VeraCrypt ist vorhanden.' if self.backend.binary else 'VeraCrypt ist noch nicht installiert.'), style='Subtitle.TLabel').pack(anchor='w', pady=8)
+        ttk.Label(self.frame, text='Gastzugang: Ein Administrator richtet dieses Linux-Konto einmalig mit setup-guests.sh ein. Danach ist kein Adminpasswort im Alltag nötig.', wraplength=670).pack(anchor='w', pady=8)
         self.button('Offizielle VeraCrypt-Downloadseite öffnen', lambda: webbrowser.open('https://veracrypt.io/en/Downloads.html'))
         ttk.Label(self.frame, text='Für Linux Mint die passende Ubuntu-Version von VeraCrypt installieren.\nNach der Installation MintTresor neu starten. Keine Online-Registrierung nötig.', wraplength=670).pack(anchor='w', pady=12)
         path, _ = self.field('Standardordner für neue Tresore', str(self.store.default_path()))

@@ -12,3 +12,24 @@ jobs:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y xvfb python3-tk
       - run: xvfb-run -a python -m unittest discover -s tests -v
+  guest-integration:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: VeraCrypt für echten Gast-Test installieren
+        run: |
+          curl -fL --retry 3 https://github.com/veracrypt/VeraCrypt/releases/download/VeraCrypt_1.26.31/veracrypt-console-1.26.31-Ubuntu-24.04-amd64.deb -o /tmp/veracrypt.deb
+          echo 'a2bf0462ca3d4198bd82f24f23ce006cf38d711b5ceec51bd61d22ebe4563fcc  /tmp/veracrypt.deb' | sha256sum -c -
+          sudo apt-get update
+          sudo apt-get install -y /tmp/veracrypt.deb
+          sudo modprobe loop
+          sudo modprobe dm-crypt
+      - name: Eingeschränktes Gastkonto einrichten
+        run: |
+          sudo useradd -m -s /bin/bash minttresor-test
+          sudo bash setup-guests.sh minttresor-test
+          sudo mkdir -p /opt/minttresor-test
+          sudo cp -R minttresor tests /opt/minttresor-test/
+          sudo chmod -R a+rX /opt/minttresor-test
+      - name: Ohne Adminpasswort öffnen, schreiben, schließen und erneut öffnen
+        run: sudo -u minttresor-test env PYTHONPATH=/opt/minttresor-test /usr/bin/python3 /opt/minttresor-test/tests/guest_roundtrip.py

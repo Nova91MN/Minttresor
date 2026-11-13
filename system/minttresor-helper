@@ -1,0 +1,164 @@
+#!/usr/bin/python3 -I
+"""Root-installed, argument-free broker for explicitly enabled local Linux accounts.
+
+No imports from the user-installed app. Passwords travel over stdin only.
+"""
+import fcntl
+import json
+import os
+from pathlib import Path
+import pwd
+import re
+import stat
+import subprocess
+import sys
+
+CONFIG = Path('/etc/minttresor')
+RUNTIME = Path('/run/minttresor')
+VERACRYPT = '/usr/bin/veracrypt'
+
+
+class Rejected(Exception):
+    pass
+
+
+def root_owned(path):
+    info = path.lstat()
+    if info.st_uid != 0 or info.st_mode & 0o022 or stat.S_ISLNK(info.st_mode):
+        raise Rejected('Unsichere Systemeinrichtung.')
+    return info
+
+
+def caller():
+    if os.geteuid() != 0 or len(sys.argv) != 1:
+        raise Rejected('Nur über die eingerichtete Systemfreigabe aufrufen.')
+    uid = int(os.environ['SUDO_UID'])
+    if uid < 1000:
+        raise Rejected('Kein freigegebenes Benutzerkonto.')
+    return pwd.getpwuid(uid)
+
+
+def read_policy(uid):
+    root_owned(CONFIG)
+    path = CONFIG / f'{uid}.json'
+    info = root_owned(path)
+    if not stat.S_ISREG(info.st_mode):
+        raise Rejected('Ungültige Systemeinrichtung.')
+    policy = json.loads(path.read_text())
+    if policy.get('uid') != uid:
+        raise Rejected('Konto nicht freigegeben.')
+    return [Path(p) for p in policy['roots']]
+
+
+def validate_request(request, roots):
+    if not isinstance(request, dict) or set(request) - {'operation', 'volume', 'password'}:
+        raise Rejected('Ungültiger Auftrag.')
+    operation = request.get('operation')
+    if operation not in ('open', 'close'):
+        raise Rejected('Nur Öffnen und Schließen erlaubt.')
+    value = request.get('volume')
+    if not isinstance(value, str) or '\x00' in value:
+        raise Rejected('Ungültiger Tresorpfad.')
+    path = Path(value)
+    if not path.is_absolute() or '..' in path.parts or not re.fullmatch(r'[0-9a-f]{32}\.hc', path.name):
+        raise Rejected('Kein MintTresor-Container.')
+    if not any(path.is_relative_to(root) for root in roots):
+        raise Rejected('Dieser Speicherort ist noch nicht durch den Administrator freigegeben.')
+    password = request.get('password', '')
+    if not isinstance(password, str) or len(password.encode('utf-8')) > 128 or any(c in password for c in '\r\n\x00'):
+        raise Rejected('Ungültiges Passwortformat.')
+    if operation == 'open' and not password:
+        raise Rejected('Tresorpasswort fehlt.')
+    return operation, path, password
+
+
+def open_container(path, uid):
+    # Pin each directory and the final file with descriptors. No symlink traversal
+    # or path re-opening after validation, including races in user-owned folders.
+    directory = os.open('/', os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for component in path.parts[1:-1]:
+            following = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                dir_fd=directory)
+            os.close(directory)
+            directory = following
+        fd = os.open(path.name, os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+    finally:
+        os.close(directory)
+    info = os.fstat(fd)
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != uid or info.st_nlink != 1 or info.st_size < 1024**2:
+        os.close(fd)
+        raise Rejected('Nur eigene reguläre Containerdateien ohne Hardlinks sind erlaubt.')
+    return fd
+
+
+def runtime_directory(uid):
+    RUNTIME.mkdir(mode=0o755, exist_ok=True)
+    root_owned(RUNTIME)
+    directory = RUNTIME / str(uid)
+    directory.mkdir(mode=0o711, exist_ok=True)
+    root_owned(directory)
+    return directory
+
+
+def invoke(arguments, password=''):
+    root_owned(Path(VERACRYPT))
+    result = subprocess.run([VERACRYPT, '--text', '--non-interactive'] + arguments,
+                            input=password + '\n', text=True, encoding='utf-8',
+                            capture_output=True,
+                            env={'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'HOME': '/root', 'LANG': 'C.UTF-8'})
+    if result.returncode:
+        # Never relay logs or the password from the privileged subprocess.
+        raise Rejected('VeraCrypt konnte den Vorgang nicht abschließen. Passwort prüfen; zum Schließen alle Dateien und Ordnerfenster im Tresor schließen.')
+
+
+def handle(request, account, roots):
+    operation, volume, password = validate_request(request, roots)
+    directory = runtime_directory(account.pw_uid)
+    with open(directory / 'operation.lock', 'a') as lock:
+        root_owned(Path(lock.name))
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        mount = directory / volume.stem
+        if operation == 'close':
+            if os.path.ismount(mount):
+                invoke(['--dismount', str(mount)])
+            if os.path.ismount(mount):
+                raise Rejected('Der Tresor ist noch geöffnet.')
+            return
+        if os.path.ismount(mount):
+            raise Rejected('Der Tresor ist bereits geöffnet. Bitte erst schließen.')
+        mount.mkdir(mode=0o700, exist_ok=True)
+        root_owned(mount)
+        if any(mount.iterdir()):
+            raise Rejected('Der Öffnungsordner ist nicht leer.')
+        fd = open_container(volume, account.pw_uid)
+        try:
+            # Use the held descriptor, never a mutable user-supplied path.
+            # The loop device keeps the inode alive after this process exits.
+            source = f'/proc/{os.getpid()}/fd/{fd}'
+            invoke(['--mount', source, str(mount), '--stdin', '--pim=0', '--keyfiles=',
+                    '--protect-hidden=no', '--cache=no', '--filesystem=vfat',
+                    f'--fs-options=uid={account.pw_uid},gid={account.pw_gid},umask=077,nodev,nosuid,noexec'], password)
+        finally:
+            os.close(fd)
+        if not os.path.ismount(mount):
+            raise Rejected('Der Tresor wurde nicht eingehängt.')
+
+
+def main():
+    try:
+        account = caller()
+        roots = read_policy(account.pw_uid)
+        data = sys.stdin.buffer.read(8193)
+        if len(data) > 8192:
+            raise Rejected('Auftrag zu groß.')
+        handle(json.loads(data), account, roots)
+    except (Rejected, OSError, ValueError, KeyError, TypeError) as exc:
+        # Only fixed messages are returned; system exceptions can contain paths.
+        print(str(exc) if isinstance(exc, Rejected) else 'Die Gastfreigabe oder Tresordatei konnte nicht geprüft werden.', file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

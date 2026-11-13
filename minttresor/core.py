@@ -1,6 +1,7 @@
 """Local accounts and a small, explicit VeraCrypt adapter."""
 import hashlib
 import hmac
+import json
 import os
 from pathlib import Path
 import re
@@ -24,6 +25,13 @@ def validate_password(password):
 
 def password_hash(password, salt):
     return hashlib.scrypt(password.encode('utf-8'), salt=salt, n=131072, r=8, p=1, maxmem=256 * 1024 * 1024)
+
+
+def managed_mount(volume):
+    token = Path(volume).stem
+    if not re.fullmatch(r'[0-9a-f]{32}', token):
+        raise UserError('Ungültige MintTresor-Kennung.')
+    return Path('/run/minttresor') / str(os.getuid()) / token
 
 
 class Store:
@@ -57,7 +65,13 @@ class Store:
     def user(self, name):
         self.db.row_factory = sqlite3.Row
         row = self.db.execute('SELECT * FROM users WHERE name=?', (name,)).fetchone()
-        return dict(row) if row else None
+        if not row:
+            return None
+        user = dict(row)
+        # Keep a still-open legacy location visible so upgrades cannot hide it.
+        if not os.path.ismount(user['mount']):
+            user['mount'] = str(managed_mount(user['volume']))
+        return user
 
     def authenticate(self, name, password):
         row = self.user(name)
@@ -82,8 +96,7 @@ class Store:
             raise UserError('Zu wenig freier Speicher für diesen Tresor. Bitte eine kleinere Größe wählen.')
         token = uuid.uuid4().hex
         volume = base / (token + '.hc')
-        mount = self.directory / 'offen' / token
-        mount.mkdir(parents=True, mode=0o700)
+        mount = managed_mount(volume)
         # Reserve a unique filename; never overwrite an existing container.
         volume.touch(mode=0o600, exist_ok=False)
         try:
@@ -107,14 +120,9 @@ class VeraCrypt:
         if not self.binary:
             raise UserError('VeraCrypt fehlt. Bitte über den Einrichtungsdialog die offizielle Downloadseite öffnen und die Linux-Mint/Ubuntu-Version installieren.')
 
-    def run(self, arguments, password=None, elevated=False):
+    def run(self, arguments, password=None):
         self.require()
         command = [self.binary, '--text', '--non-interactive'] + arguments
-        if elevated:
-            pkexec = shutil.which('pkexec')
-            if not pkexec:
-                raise UserError('Die Systemkomponente pkexec fehlt (Paket policykit-1 bzw. polkitd-pkexec).')
-            command = [pkexec] + command
         try:
             result = subprocess.run(command, input=(password + '\n') if password is not None else '',
                                     text=True, encoding='utf-8', capture_output=True)
@@ -122,7 +130,26 @@ class VeraCrypt:
             raise UserError('VeraCrypt konnte nicht gestartet werden.') from exc
         if result.returncode:
             # Do not log subprocess output: keep secrets out of diagnostics.
-            raise UserError('VeraCrypt konnte den Vorgang nicht abschließen. Prüfe das Passwort, den freien Speicher und die Systemfreigabe. Beim Schließen: alle Dateien und Ordnerfenster im Tresor schließen und erneut versuchen. Der Tresor wurde nicht als sicher geschlossen bestätigt.')
+            raise UserError('VeraCrypt konnte den Vorgang nicht abschließen. Prüfe das Passwort, den freien Speicher. Beim Schließen: alle Dateien und Ordnerfenster im Tresor schließen und erneut versuchen. Der Tresor wurde nicht als sicher geschlossen bestätigt.')
+
+    def guest_operation(self, operation, user, password=''):
+        helper = Path('/usr/local/libexec/minttresor-helper')
+        if not helper.is_file() or not Path('/usr/bin/sudo').is_file():
+            raise UserError('Der Gastzugang ist noch nicht eingerichtet. Ein Administrator muss einmalig setup-guests.sh für dieses Linux-Konto ausführen. Gäste benötigen danach kein Adminpasswort.')
+        if Path(user['mount']) != managed_mount(user['volume']):
+            raise UserError('Dieser Tresor ist noch mit einer älteren Version geöffnet. Bitte vor dem Update mit der bisherigen Version oder durch einen Administrator schließen.')
+        request = json.dumps({'operation': operation, 'volume': user['volume'], 'password': password})
+        try:
+            result = subprocess.run(['/usr/bin/sudo', '-n', '--', str(helper)], input=request,
+                                    text=True, encoding='utf-8', capture_output=True)
+        except OSError as exc:
+            raise UserError('Die lokale Gastfreigabe konnte nicht gestartet werden.') from exc
+        if result.returncode:
+            # The trusted helper only returns fixed messages, never VeraCrypt logs.
+            detail = result.stderr.strip()
+            if 'sudo:' in detail or not detail:
+                detail = 'Ein Administrator muss den Gastzugang einmalig mit setup-guests.sh einrichten.'
+            raise UserError(detail[:1000])
 
     def create(self, volume, password, size):
         # VeraCrypt refuses existing files without --force. Remove only our empty reservation.
@@ -143,19 +170,13 @@ class VeraCrypt:
             return
         if not Path(user['volume']).is_file():
             raise UserError('Die Tresordatei fehlt. Bitte das Laufwerk mit dem gespeicherten Tresor anschließen.')
-        mount = Path(user['mount'])
-        mount.mkdir(parents=True, exist_ok=True, mode=0o700)
-        if any(mount.iterdir()):
-            raise UserError('Der Öffnungsordner ist nicht leer. Bitte die dortigen Dateien zuerst an einem anderen Ort sichern.')
-        self.run(['--mount', user['volume'], user['mount'], '--stdin', '--pim=0',
-                  '--keyfiles=', '--protect-hidden=no', '--cache=no',
-                  f'--fs-options=uid={os.getuid()},gid={os.getgid()},umask=077'], password, elevated=True)
+        self.guest_operation('open', user, password)
         if not self.mounted(user):
             raise UserError('Der Tresor wurde nicht eingehängt. Bitte VeraCrypt prüfen.')
 
     def close(self, user):
         if self.mounted(user):
-            self.run(['--dismount', user['volume']], elevated=True)
+            self.guest_operation('close', user)
         if self.mounted(user):
             raise UserError('Der Tresor ist noch geöffnet. Bitte alle darin geöffneten Dokumente schließen.')
 

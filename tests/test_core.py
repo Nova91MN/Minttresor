@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from minttresor.core import Store, UserError, VeraCrypt
+from minttresor.core import Store, UserError, VeraCrypt, managed_mount
 
 
 class FakeBackend:
@@ -108,13 +108,15 @@ class Adapter(unittest.TestCase):
     @patch('minttresor.core.os.path.ismount', return_value=True)
     def test_busy_unmount_never_forces(self, mounted, run):
         run.return_value = subprocess.CompletedProcess([], 1, '', 'busy')
-        with patch('minttresor.core.shutil.which', return_value='/usr/bin/pkexec'):
+        volume = '/test/' + 'a' * 32 + '.hc'
+        with patch('minttresor.core.Path.is_file', return_value=True):
             with self.assertRaises(UserError):
-                self.backend.close({'volume': '/test.hc', 'mount': '/test-mount'})
+                self.backend.close({'volume': volume, 'mount': str(managed_mount(volume))})
         command = run.call_args.args[0]
-        self.assertEqual(command[0], '/usr/bin/pkexec')
-        self.assertNotIn('--force', command)
-        self.assertIn('--dismount', command)
+        self.assertEqual(command, ['/usr/bin/sudo', '-n', '--', '/usr/local/libexec/minttresor-helper'])
+        request = __import__('json').loads(run.call_args.kwargs['input'])
+        self.assertEqual(request['operation'], 'close')
+        self.assertNotIn('--force', str(run.call_args))
 
     def test_missing_backend_clear_error(self):
         self.backend.binary = None
@@ -126,15 +128,36 @@ class Adapter(unittest.TestCase):
             with self.assertRaises(UserError):
                 self.backend.open_folder({'mount': '/missing'})
 
-    def test_refuses_nonempty_mount_directory(self):
+    @patch('minttresor.core.Path.is_file', return_value=False)
+    @patch('minttresor.core.subprocess.run')
+    def test_missing_guest_setup_never_prompts(self, run, exists):
+        with self.assertRaisesRegex(UserError, 'Gastzugang'):
+            self.backend.guest_operation('open', {'volume': '/a.hc', 'mount': '/a'})
+        run.assert_not_called()
+
+    @patch('minttresor.core.Path.is_file', return_value=True)
+    @patch('minttresor.core.subprocess.run')
+    def test_guest_open_has_no_arbitrary_arguments_or_password_in_argv(self, run, exists):
+        import json
+        run.return_value = subprocess.CompletedProcess([], 0)
+        volume = '/test/' + 'b' * 32 + '.hc'
+        self.backend.guest_operation('open', {'volume': volume, 'mount': str(managed_mount(volume))}, 'secret-test-value')
+        self.assertEqual(run.call_args.args[0], ['/usr/bin/sudo', '-n', '--', '/usr/local/libexec/minttresor-helper'])
+        request = json.loads(run.call_args.kwargs['input'])
+        self.assertEqual(request, {'operation': 'open', 'volume': volume, 'password': 'secret-test-value'})
+        self.assertNotIn('secret-test-value', str(run.call_args.args))
+
+    def test_existing_accounts_use_controlled_runtime_mounts(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / 'container.hc').touch()
-            (root / 'plain.txt').write_text('keep me')
-            with patch('minttresor.core.os.path.ismount', return_value=False):
-                with self.assertRaises(UserError):
-                    self.backend.open({'volume': str(root / 'container.hc'), 'mount': directory}, 'secret')
-            self.assertEqual((root / 'plain.txt').read_text(), 'keep me')
+            store = Store(directory)
+            try:
+                volume = '/test/' + 'c' * 32 + '.hc'
+                store.db.execute('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)',
+                                 ('old', b'salt', b'digest', volume, '/old/user/writable/path', 1))
+                store.db.commit()
+                self.assertEqual(store.user('old')['mount'], str(managed_mount(volume)))
+            finally:
+                store.db.close()
 
 
 if __name__ == '__main__':

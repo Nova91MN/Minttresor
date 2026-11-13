@@ -9,7 +9,6 @@ if ! /usr/bin/python3 -c 'import tkinter' 2>/dev/null; then
   sudo apt-get update
   sudo apt-get install -y python3-tk
 fi
-command -v pkexec >/dev/null || { echo 'Bitte zuerst installieren: sudo apt install policykit-1'; exit 1; }
 app_dir="$HOME/.local/lib/minttresor"
 mkdir -p "$app_dir" "$HOME/.local/bin" "$HOME/.local/share/applications"
 cp -R "$(dirname "$0")/minttresor" "$app_dir/"
@@ -35,3 +34,5 @@ printf 'MintTresor ist installiert. Starte es über das Anwendungsmenü.\n'
 if ! command -v veracrypt >/dev/null; then
   printf 'VeraCrypt fehlt noch: https://veracrypt.io/en/Downloads.html\n'
 fi
+
+printf 'Ein Administrator muss den Gastzugang einmalig einrichten: sudo bash setup-guests.sh LINUX-BENUTZER\n'
