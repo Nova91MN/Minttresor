@@ -81,6 +81,7 @@ class GuestHelper(unittest.TestCase):
             self.assertTrue(Path(args[1]).exists())
             self.assertNotEqual(args[1], str(self.volume))
             self.assertFalse(any(arg.startswith('--filesystem=') for arg in args))
+            self.assertFalse(any(arg.startswith('--cache') for arg in args))
             self.assertIn(f'--fs-options=uid={os.getuid()},gid={os.getgid()},umask=077,nodev,nosuid,noexec', args)
             self.assertEqual(password, 'Test-pass-123')
         with patch.object(helper, 'runtime_directory', return_value=runtime), \
