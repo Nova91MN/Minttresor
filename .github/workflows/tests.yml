@@ -24,6 +24,7 @@ jobs:
           sudo apt-get install -y /tmp/veracrypt.deb
           sudo modprobe loop
           sudo modprobe dm-crypt
+          sudo modprobe fuse
       - name: Eingeschränktes Gastkonto einrichten
         run: |
           sudo useradd -m -s /bin/bash minttresor-test
@@ -31,5 +32,13 @@ jobs:
           sudo mkdir -p /opt/minttresor-test
           sudo cp -R minttresor tests /opt/minttresor-test/
           sudo chmod -R a+rX /opt/minttresor-test
+          # Only this disposable test installation logs VeraCrypt output. All
+          # passwords and containers in this job are generated test fixtures.
+          sudo /usr/bin/python3 -I - <<'PY'
+          from pathlib import Path
+          helper = Path('/usr/local/libexec/minttresor-helper')
+          source = helper.read_text().replace('    if result.returncode:', '    if result.returncode:\n        print(result.stdout, result.stderr, file=sys.stderr)')
+          helper.write_text(source)
+          PY
       - name: Ohne Adminpasswort öffnen, schreiben, schließen und erneut öffnen
         run: sudo -u minttresor-test env PYTHONPATH=/opt/minttresor-test /usr/bin/python3 /opt/minttresor-test/tests/guest_roundtrip.py
