@@ -80,7 +80,7 @@ class GuestHelper(unittest.TestCase):
             self.assertEqual(args[0], '--mount')
             self.assertTrue(Path(args[1]).exists())
             self.assertNotEqual(args[1], str(self.volume))
-            self.assertIn('--filesystem=vfat', args)
+            self.assertFalse(any(arg.startswith('--filesystem=') for arg in args))
             self.assertIn(f'--fs-options=uid={os.getuid()},gid={os.getgid()},umask=077,nodev,nosuid,noexec', args)
             self.assertEqual(password, 'Test-pass-123')
         with patch.object(helper, 'runtime_directory', return_value=runtime), \

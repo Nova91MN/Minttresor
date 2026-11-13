@@ -14,6 +14,7 @@ jobs:
       - run: xvfb-run -a python -m unittest discover -s tests -v
   guest-integration:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: VeraCrypt für echten Gast-Test installieren

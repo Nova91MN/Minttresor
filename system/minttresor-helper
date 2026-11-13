@@ -137,7 +137,7 @@ def handle(request, account, roots):
             # The loop device keeps the inode alive after this process exits.
             source = f'/proc/{os.getpid()}/fd/{fd}'
             invoke(['--mount', source, str(mount), '--stdin', '--pim=0', '--keyfiles=',
-                    '--protect-hidden=no', '--cache=no', '--filesystem=vfat',
+                    '--protect-hidden=no', '--cache=no',
                     f'--fs-options=uid={account.pw_uid},gid={account.pw_gid},umask=077,nodev,nosuid,noexec'], password)
         finally:
             os.close(fd)

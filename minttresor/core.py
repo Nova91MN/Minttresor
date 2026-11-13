@@ -130,7 +130,7 @@ class VeraCrypt:
             raise UserError('VeraCrypt konnte nicht gestartet werden.') from exc
         if result.returncode:
             # Do not log subprocess output: keep secrets out of diagnostics.
-            raise UserError('VeraCrypt konnte den Vorgang nicht abschließen. Prüfe das Passwort, den freien Speicher. Beim Schließen: alle Dateien und Ordnerfenster im Tresor schließen und erneut versuchen. Der Tresor wurde nicht als sicher geschlossen bestätigt.')
+            raise UserError('VeraCrypt konnte den Vorgang nicht abschließen. Prüfe das Passwort und den freien Speicher. Beim Schließen: alle Dateien und Ordnerfenster im Tresor schließen und erneut versuchen. Der Tresor wurde nicht als sicher geschlossen bestätigt.')
 
     def guest_operation(self, operation, user, password=''):
         helper = Path('/usr/local/libexec/minttresor-helper')
