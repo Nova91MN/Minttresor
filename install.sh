@@ -27,10 +27,10 @@ for char in ('\\', '"', '`', '$'):
     path = path.replace(char, '\\' + char)
 path = path.replace('%', '%%')
 (Path.home() / '.local/share/applications/minttresor.desktop').write_text(
-    '[Desktop Entry]\nType=Application\nName=MintTresor\nComment=Persönliche verschlüsselte Dateiablage\n'
+    '[Desktop Entry]\nType=Application\nName=Speicherort\nComment=Deine Dateien. Sicher und einfach.\n'
     f'Exec="{path}"\nIcon=folder-locked\nTerminal=false\nCategories=Utility;Security;\n', encoding='utf-8')
 PY
-printf 'MintTresor ist installiert. Starte es über das Anwendungsmenü.\n'
+printf 'Speicherort ist installiert. Starte es über das Anwendungsmenü.\n'
 if ! command -v veracrypt >/dev/null; then
   printf 'VeraCrypt fehlt noch: https://veracrypt.io/en/Downloads.html\n'
 fi

@@ -1,143 +1,176 @@
-# MintTresor
+# Speicherort · MintTresor
 
-**Eine einfache, lokale Dateiablage mit persönlichen VeraCrypt-Tresoren für Linux Mint.**
+**Deine Dateien. Sicher und einfach.**
 
-Deutsche Desktopoberfläche · lokale Benutzerkonten · frei wählbarer Speicherort · Ordnerzugriff für LibreOffice und andere Programme.
+Speicherort ist eine deutsche Desktop-Anwendung für Linux Mint. Deine persönlichen Dateien liegen in einem verschlüsselten Tresor auf deinem Computer. Du wählst deinen Namen, gibst dein Passwort ein und öffnest deine Dateien im gewohnten Dateimanager.
 
-> Version 0.2.0 ergänzt einen einmalig durch den Administrator einzurichtenden Gastzugang ohne Adminpasswort im Alltag. Die Containererstellung wurde mit echtem VeraCrypt 1.26.31 getestet. Ein vollständiger Praxistest mit LibreOffice auf einem Linux-Mint-Desktop steht noch aus.
+Das Projekt heißt intern weiterhin **MintTresor**. Befehle, Kontodaten und vorhandene Tresore bleiben kompatibel. Version **0.3.0** erneuert die Oberfläche; Verschlüsselungsverfahren und Systemfreigaben bleiben erhalten.
 
-![MintTresor Startseite](docs/startseite.png)
+![Tresorauswahl in Speicherort](docs/startseite.png)
 
-## Für Einsteiger: installieren
+## Installieren
 
-1. **VeraCrypt installieren:** Auf der [offiziellen Downloadseite](https://veracrypt.io/en/Downloads.html) das passende Linux-Paket herunterladen. Für Linux Mint 22.x passt üblicherweise das Ubuntu-24.04-Paket, für Mint 21.x Ubuntu 22.04. LMDE benötigt das passende Debian-Paket. Das Paket durch Doppelklick mit der Paketverwaltung installieren. Die grafische VeraCrypt-Version erleichtert auch die spätere Wiederherstellung.
-2. **MintTresor herunterladen:** Bei GitHub unter **Releases** das ZIP der aktuellen Vorabversion laden und entpacken.
-3. Im entpackten Ordner mit der rechten Maustaste **„Im Terminal öffnen“** wählen und ausführen:
+1. **VeraCrypt installieren:** Lade das passende Linux-Paket von der [offiziellen Downloadseite](https://veracrypt.io/en/Downloads.html). Für Linux Mint 22.x passt üblicherweise Ubuntu 24.04, für Mint 21.x Ubuntu 22.04. LMDE benötigt das entsprechende Debian-Paket. Installiere das Paket durch Doppelklick mit der Paketverwaltung. Die grafische VeraCrypt-Version hilft bei einer späteren Wiederherstellung.
+2. **Dieses Projekt herunterladen:** Öffne auf GitHub **Code → Download ZIP** und entpacke das Archiv. Für eine bestimmte veröffentlichte Version kannst du das Quellarchiv unter **Releases** verwenden.
+3. Klicke im entpackten Ordner mit der rechten Maustaste und wähle **Im Terminal öffnen**. Gib ein:
 
    ```bash
    bash install.sh
    ```
 
-4. **Gastzugang einmalig als Administrator einrichten** (siehe unten), dann **MintTresor** im Linux-Anwendungsmenü starten. Fehlendes `python3-tk` installiert das Skript über die Paketverwaltung; dafür wird das Linux-Systempasswort benötigt. MintTresor selbst läuft als normaler Benutzer.
+4. Lass einmalig die unten beschriebene **Gastfreigabe durch einen Administrator** einrichten.
+5. Starte **Speicherort** über das Linux-Anwendungsmenü.
 
-Voraussetzungen: Python 3.10 oder neuer, Tkinter, VeraCrypt unter `/usr/bin/veracrypt` mit `--stdin`-Unterstützung (geprüft mit 1.26.31), `xdg-open` und `sudo`.
+Das Installationsskript installiert fehlendes `python3-tk` über die Paketverwaltung; dafür fragt Linux nach dem Systempasswort. Die Anwendung selbst läuft als normaler Benutzer. Nach einem Update `bash install.sh` erneut ausführen. Bestehende Konten, gespeicherte Einstellungen und Tresore werden nicht zurückgesetzt.
 
-## Einmalige Freigabe durch den Administrator
+Benötigt werden Python ab 3.10, Tkinter ab Tk 8.6, VeraCrypt unter `/usr/bin/veracrypt` mit `--stdin`-Unterstützung (Integration mit Version 1.26.31), `xdg-open` und `sudo`. Es gibt keine zusätzlichen Python-Abhängigkeiten.
 
-Gäste brauchen **nur ihr Tresorpasswort**. Ein Administrator führt im entpackten Projektordner einmalig aus:
+## Deinen ersten Tresor erstellen
+
+Wähle auf der Startseite **Neuen Tresor erstellen**. Der Assistent führt dich durch vier Schritte:
+
+1. **Name:** Wähle zum Beispiel deinen Vornamen. Dieser Name erscheint später auf der Startseite. Er darf 1 bis 40 Zeichen lang sein.
+2. **Passwort:** Gib ein Passwort mit mindestens 12 Zeichen zweimal ein. Mehrere Wörter sind oft gut zu merken. **Bewahre das Passwort sicher auf: Ein vergessenes Passwort kann nicht zurückgesetzt werden.**
+3. **Einrichtung:** Wähle die Größe. Voreingestellt sind 2 GB; möglich sind 1 bis 32 GB (technisch GiB). Der angezeigte Speicherort gilt für diesen neuen Tresor. **Tresor erstellen** beginnt die Verschlüsselung. Das dauert je nach Laufwerk einige Minuten; eine Fortschrittsanzeige bleibt sichtbar. Die Größe lässt sich später nicht automatisch erweitern. Eine einzelne Datei muss kleiner als 4 GB sein.
+4. **Fertig:** Wähle **Jetzt Dateien öffnen**, gib dein Passwort ein und dein Dateimanager wird gestartet. Aus Sicherheitsgründen bewahrt der Assistent dein Passwort nach der Erstellung nicht auf.
+
+Mit **Zurück** kannst du Angaben ändern. Wenn du zum Passwortschritt zurückkehrst oder eine Erstellung fehlschlägt, gib das Passwort erneut ein. Während der tatsächlichen Erstellung lässt sich der Vorgang nicht über die Oberfläche abbrechen.
+
+## Deine Dateien öffnen
+
+1. Starte **Speicherort** und klicke auf die Karte mit deinem Namen.
+2. Gib dein Passwort ein und klicke auf **Tresor öffnen**. Die Eingabetaste funktioniert ebenfalls.
+3. Klicke auf **Meine Dateien öffnen**. Dort kannst du Dokumente, Bilder und andere Dateien ablegen oder bearbeiten.
+
+Es ist keine Online-Anmeldung nötig. Nach einmaliger Gastfreigabe brauchst du nur dein persönliches Tresorpasswort, kein Adminpasswort.
+
+Mit **Passwort anzeigen** kannst du deine Eingabe kurz prüfen. Nach zehn Sekunden, beim Verlassen der Passwortbedienelemente, beim Wechsel in ein anderes Fenster oder mit **Escape** wird sie wieder verdeckt. Beim Wechsel der Ansicht und vor dem Öffnen werden die Eingabefelder geleert.
+
+## Deinen Tresor sicher schließen
+
+Speichere deine Dokumente. Schließe die Programme und Ordnerfenster, die Dateien im Tresor verwenden. Klicke danach auf **Tresor sicher schließen**. Erst die Anzeige **Dein Tresor ist geschlossen** bestätigt das Schließen.
+
+Falls das Schließen nicht klappt, bleibt die Anwendung geöffnet und zeigt eine Handlungsempfehlung. Schließe noch verwendete Dokumente und versuche es erneut. Es wird kein erzwungenes Schließen verwendet.
+
+Wenn du das Anwendungsfenster mit geöffnetem Tresor schließt, wirst du daran erinnert, deine Dokumente zu speichern. Nach deiner Bestätigung schließt Speicherort zuerst den Tresor. Bei einem Fehler bleibt das Fenster offen. Du kannst den Dialog auch abbrechen und weiterarbeiten.
+
+Nach einem Absturz oder Stromausfall kann ein Tresor geöffnet bleiben. Starte Speicherort erneut. Seine Karte zeigt **Noch geöffnet**. Melde dich an und schließe den Tresor sicher. Andere noch geöffnete bekannte Tresore verhindern ebenfalls das normale Beenden.
+
+## Mit LibreOffice arbeiten
+
+Öffne **Meine Dateien öffnen**. Ziehe Dateien in diesen Ordner oder wähle ihn in LibreOffice unter **Speichern unter**. Deine Dateien lassen sich mit den üblichen Programmen bearbeiten.
+
+LibreOffice kann Sicherungen, Wiederherstellungsdaten und temporäre Dateien außerhalb des Tresors anlegen. Prüfe für vertrauliche Arbeit dessen Einstellungen für Backups, AutoWiederherstellung und temporäre Pfade. Speicherort ändert diese Programmeinstellungen nicht.
+
+## Einstellungen und einmalige Administratorfreigabe
+
+Unter **Einstellungen** kannst du einen **Ordner für neue Tresore** wählen. Ohne Änderung gilt `~/Tresore`. Das verschiebt oder verändert bestehende Tresore nicht. Der Ordner muss beschreibbar sein. Für das Öffnen eines Tresors muss sein Speicherort zusätzlich vom Systemhelfer freigegeben sein; die Auswahl eines Ordners erteilt diese Berechtigung nicht.
+
+Technische Einrichtungshinweise liegen hinter **Einrichtung durch Administratoren anzeigen**. Zum normalen Öffnen und Schließen sind sie nicht nötig.
+
+Ein Administrator führt im entpackten Projektordner einmalig aus:
 
 ```bash
 sudo bash setup-guests.sh LINUX-BENUTZER
 ```
 
-`LINUX-BENUTZER` ist das Linux-Konto, in dem Gäste die Anwendung starten, **nicht** ein in MintTresor registrierter Name. Im Terminal dieser Sitzung zeigt `whoami` den richtigen Namen. Bei einem gemeinsam genutzten Linux-Konto reicht eine Freigabe für dieses Konto. Beispielsweise: `sudo bash setup-guests.sh rotemagda`.
+`LINUX-BENUTZER` ist das Linux-Konto, in dem Speicherort läuft, **nicht** der Name einer Tresorkarte. `whoami` zeigt den Namen des aktuellen Linux-Kontos. Bei einem gemeinsam genutzten Konto genügt eine Freigabe für dieses Konto.
 
-Dabei wird das Heimatverzeichnis dieses Linux-Kontos als Speicherbereich freigegeben. Für externe Laufwerke zusätzliche bestehende Ordner ausdrücklich angeben:
+Dabei wird das Heimatverzeichnis dieses Linux-Kontos freigegeben. Für externe Laufwerke zusätzliche bestehende Ordner ausdrücklich angeben:
 
 ```bash
 sudo bash setup-guests.sh gast /media/gast/Datentraeger/Tresore
 ```
 
-Bei erneutem Aufruf werden die Zusatzordner durch die dann angegebenen ersetzt. Bereits eingerichtete weitere Linux-Konten bleiben erhalten. Danach `bash install.sh` im **Gastkonto** ausführen und MintTresor dort starten. Auch beim direkten Start von `app.py` gilt die Freigabe.
+Bei erneutem Aufruf werden die Zusatzordner durch die dann angegebenen ersetzt. Bereits eingerichtete andere Linux-Konten bleiben erhalten. Installiere die Anwendung anschließend mit `bash install.sh` im Gastkonto. Nach einer neuen VeraCrypt-Installation Speicherort neu starten.
 
-Die Einrichtung braucht einmal das Adminpasswort. **Beim Öffnen und Schließen erscheint kein Admin-Dialog mehr.** Fehlt die Freigabe oder wurde der Speicherort noch nicht zugelassen, gibt es eine Fehlermeldung ohne Passwortabfrage. MintTresor verwendet dafür ausschließlich `sudo -n`; keine automatische Rückkehr zur bisherigen Polkit-Abfrage.
+Die Freigabe benötigt einmal Adminrechte. Im Alltag verwendet Speicherort ausschließlich `sudo -n`; ohne Freigabe gibt es eine Fehlermeldung ohne interaktive Adminabfrage. Einstellungen und ausgeblendete Hinweise ersetzen keine Zugriffskontrolle: Der root-eigene Systemhelfer prüft die Berechtigung bei jedem Öffnen und Schließen.
 
-**Update von 0.1.x:** Zuerst alle geöffneten Tresore mit der alten Version schließen, dann die Gastfreigabe einrichten und `bash install.sh` erneut ausführen. Bestehende Konten, Tresorpasswörter und Container bleiben erhalten. Nur die temporären Öffnungsordner wechseln nach `/run/minttresor`.
+**Update von 0.1.x:** Zuerst alle geöffneten Tresore mit der alten Version schließen, Gastfreigabe einrichten und `bash install.sh` erneut ausführen. Nur die temporären Öffnungsordner wechseln nach `/run/minttresor`. Beim Update von 0.2.x bleiben Kontodaten, Tresordateien, Pfade und bereits eingerichtete Gastfreigaben unverändert verwendbar.
 
-## In drei Schritten einrichten
+## Bedienung mit der Tastatur und große Schrift
 
-1. **Einrichtung & Speicherort:** Einen Standardordner wählen, zum Beispiel `Dokumente/Tresore` oder einen Ordner auf einer externen Festplatte. Ohne Änderung gilt `~/Tresore`.
-2. **Neuen Benutzer anlegen:** Benutzername, Passwort und Wiederholung eingeben. Die Größe ist auf 2 GB voreingestellt, wählbar sind 1–32 GiB. Der gesamte Container wird angelegt und verschlüsselt; dies dauert je nach Laufwerk einige Minuten. Das Passwort benötigt mindestens 12 Zeichen. Es gibt keine E-Mail, Cloud und Passwortzurücksetzung.
-3. **Anmelden und Tresor öffnen:** Nach der einmaligen Gastfreigabe genügt das persönliche Tresorpasswort. Gäste erhalten keine allgemeinen Administratorrechte.
+Mit **Tab** gelangst du zur nächsten Aktion, mit **Umschalt + Tab** zurück. Der Fokus ist sichtbar. Die **Leertaste** betätigt Schaltflächen und Auswahlkästchen; **Enter** startet im Eingabefeld die Hauptaktion oder betätigt die fokussierte Schaltfläche. Das Passwortfeld erhält nach der Tresorauswahl automatisch den Fokus.
 
-Der Standardordner gilt für **neu angelegte** Tresore. Bestehende Tresore werden beim Ändern dieser Einstellung nicht verschoben.
+Texte passen sich an die Fensterbreite an. Bei kleinen Fenstern oder hoher Skalierung kannst du mit Mausrad oder Scrollleiste nach unten gehen; bei Tastaturnavigation wird das fokussierte Bedienelement in den sichtbaren Bereich gescrollt. Zustände werden mit Text und Symbolen beschrieben. Die Oberfläche wurde unter Xvfb bei 1366 × 768 und 1920 × 1080 sowie mit 100–200 % Schrift-/DPI-Skalierung geprüft. Eine Prüfung mit Screenreader/AT-SPI auf Linux Mint steht noch aus; vollständige Screenreader-Unterstützung wird nicht zugesichert.
 
-## Mit LibreOffice arbeiten
+## Datensicherung und Wiederherstellung
 
-**Meinen Ordner öffnen** anklicken. Dateien hineinlegen oder in LibreOffice unter **Speichern unter** diesen geöffneten Ordner wählen. Auch Bilder, PDFs und andere Dateien funktionieren über den normalen Dateimanager.
+1. Schließe alle Tresore.
+2. Sichere die `.hc`-Dateien und den gesamten Ordner `~/.local/share/minttresor` auf ein anderes Laufwerk. Behandle auch die Kontodaten vertraulich.
+3. Bewahre Passwörter getrennt und sicher auf.
 
-Vor **Tresor schließen und abmelden** alle Dokumente speichern, Programme mit Dateien im Tresor und die zugehörigen Dateimanagerfenster schließen. Bei belegtem Tresor bricht MintTresor ab; es erzwingt kein Aushängen. Auch das Schließen des App-Fensters hängt den aktuell verwendeten Tresor zuerst aus. Nach einem Absturz können Tresore geöffnet bleiben: erneut anmelden und schließen. Die Startseite zeigt bekannte noch eingehängte Tresore an.
+Unter **Hinweise und Tresordetails anzeigen** findest du den gespeicherten Pfad deines Tresors. Eine Tresordatei lässt sich mit ihrem Passwort auch unabhängig von Speicherort in VeraCrypt öffnen. Nach Verlust der Kontodaten gibt es keinen Importassistenten. Beim Wiederherstellen der Kontodaten müssen die gespeicherten absoluten Pfade stimmen; bei einem Rechnerwechsel ist die direkte Verwendung von VeraCrypt oft einfacher.
 
-### Grenzen dieser ersten Version
+Eine fehlgeschlagene Erstellung kann eine unvollständige `.hc`-Datei hinterlassen. Diese wird nicht automatisch gelöscht oder überschrieben. Erst nach Prüfung manuell entfernen; eine fehlgeschlagene Kontoanlage speichert keinen neuen Benutzer.
 
-- FAT als internes Dateisystem: **eine einzelne Datei muss kleiner als 4 GiB sein**. Geeignet für gewöhnliche Office-Dateien, weniger für große Videos oder virtuelle Maschinen. Containergröße 1–32 GiB, keine automatische Erweiterung.
-- Lokale App-Konten innerhalb **eines Linux-Benutzerkontos**. Sie bieten individuelle verschlüsselte Ablagen, aber keine Trennung bereits geöffneter Tresore gegenüber anderen Programmen desselben Linux-Benutzers. Für unabhängige Personen mit unterschiedlichen Zugriffsrechten eigene Linux-Konten verwenden.
-- Ein geöffneter Tresor ist für den berechtigten Linux-Benutzer lesbar. Administratoren, Schadsoftware und bereits entsperrte Sitzungen werden dadurch nicht abgewehrt.
-- LibreOffice kann Sicherungen, Wiederherstellungsdaten und temporäre Dateien außerhalb des Tresors anlegen. Für vertrauliche Arbeit die Office-Einstellungen für Backups, AutoWiederherstellung und temporäre Pfade prüfen. MintTresor verwaltet diese Programmeinstellungen nicht.
-- Keine gemeinsamen Tresore, Passwortänderung, Benutzerlöschung, automatische Sperre, Wiederherstellungsfunktion oder Verwaltung vorhandener fremder VeraCrypt-Container in der Oberfläche. VeraCrypt selbst kann die erzeugten Container öffnen.
-- Bei Stromausfall und erzwungenem Beenden ist ein geöffneter Tresor nicht automatisch sicher geschlossen.
-
-## Wo liegen die Daten?
+## Technische Daten und Sicherheitsgrenzen
 
 | Inhalt | Ort |
 | --- | --- |
-| Verschlüsselte Container | Standardordner, jeweils `<zufällige Kennung>.hc` |
-| Lokale Kontodaten und gespeicherte Pfade | `~/.local/share/minttresor/accounts.sqlite3` |
+| Verschlüsselte Tresordateien | Gewählter Ordner, jeweils `<zufällige Kennung>.hc` |
+| Kontodaten und gespeicherte Pfade | `~/.local/share/minttresor/accounts.sqlite3` |
 | Geöffnete Ordner | `/run/minttresor/<Linux-UID>/<Kennung>` |
-| Anwendung | `~/.local/lib/minttresor` |
+| Anwendung und Starter | `~/.local/lib/minttresor`, `~/.local/bin/minttresor` |
+| Menüeintrag | `~/.local/share/applications/minttresor.desktop` (sichtbarer Name: Speicherort) |
 
-Die Kontodaten enthalten Benutzernamen und Pfade im Klartext sowie zufällig gesalzene scrypt-Prüfwerte, **keine Klartextpasswörter**. Verwendet werden scrypt N=131072, r=8, p=1 und 16-Byte-Salts. Das Tresorpasswort wird über eine Pipe an VeraCrypt übergeben, nicht als Kommandozeilenargument, Umgebungsvariable oder Datei. Python garantiert kein vollständiges Löschen von Passwörtern aus dem Arbeitsspeicher.
+Die Kontodaten enthalten Namen und Pfade im Klartext sowie gesalzene scrypt-Prüfwerte, keine Klartextpasswörter. Die Parameter bleiben **scrypt N=131072, r=8, p=1, 16-Byte-Salts**. Passwörter benötigen mindestens 12 Zeichen und dürfen maximal 128 UTF-8-Bytes umfassen; Zeilenumbrüche und Nullzeichen sind ausgeschlossen. Passwörter werden über eine Pipe übergeben, nicht als Kommandozeilenargument, Umgebungsvariable oder Datei. Prozessausgaben werden nicht als Fehlertext weitergereicht oder protokolliert. Python garantiert kein vollständiges Löschen von Passwörtern aus dem Arbeitsspeicher.
 
-Die Verschlüsselung übernimmt VeraCrypt mit AES, SHA-512 und PIM 0. Zufallsquelle ist `/dev/urandom`. Zum Ein- und Aushängen wird ein fest installierter, eingeschränkter Systemhelfer verwendet. Die Oberfläche läuft als normaler Benutzer. Kein Server, keine Telemetrie und kein Hintergrunddienst. Nur die ausdrücklich angeklickte Downloadseite öffnet einen Browser.
+VeraCrypt verwendet weiterhin **AES, SHA-512, PIM 0, FAT und `/dev/urandom`**. Der eingeschränkte Systemhelfer bleibt unverändert. Kein Server, keine Telemetrie und kein Hintergrunddienst. Nur die ausdrücklich angeklickte Downloadseite öffnet einen Browser.
 
-### Umfang der Gastfreigabe
+`setup-guests.sh` installiert den root-eigenen Helfer `/usr/local/libexec/minttresor-helper`, die Konfiguration `/etc/minttresor/<UID>.json` und eine mit `visudo` geprüfte Regel `/etc/sudoers.d/minttresor-<UID>`. Ausschließlich dieser Helfer ist ohne Kommandozeilenargumente freigegeben. Es gibt keine pauschale Freigabe für VeraCrypt, Python oder eine Shell.
 
-`setup-guests.sh` installiert den root-eigenen Helfer `/usr/local/libexec/minttresor-helper`, die Kontokonfiguration `/etc/minttresor/<UID>.json` und eine mit `visudo` geprüfte Regel `/etc/sudoers.d/minttresor-<UID>`. Freigegeben ist ausschließlich dieser Helfer ohne Kommandozeilenargumente. Es gibt keine pauschale Freigabe für VeraCrypt, Python oder eine Shell.
+Der Helfer nutzt isoliertes System-Python (`-I`) und keinen Code aus dem beschreibbaren App-Ordner. Er prüft Linux-UID, erlaubte Speicherbereiche, Tresorkennung und Dateibesitz. Symlinks, Hardlinks, Gerätedateien und frei vorgegebene Befehle werden abgelehnt. Er hält die geprüfte Datei über einen Dateideskriptor fest und verwendet root-eigene Öffnungsordner. FAT wird mit `nodev,nosuid,noexec` und den Rechten des aufrufenden Kontos geöffnet. Es gibt kein erzwungenes Aushängen. Die Freigabe erlaubt den Helfer auch außerhalb der Oberfläche; zum Entschlüsseln ist weiterhin das Tresorpasswort nötig.
 
-Der Helfer läuft mit isoliertem System-Python (`-I`) und importiert keinen Code aus dem beschreibbaren App-Ordner. Er prüft Linux-UID, freigegebene Speicherbereiche, Containerkennung und Dateibesitz. Symlinks, Hardlinks, Gerätedateien und frei vorgegebene Befehle sind ausgeschlossen. Er hält den geprüften Container über einen Dateideskriptor fest und verwendet feste Öffnungsordner unter einem root-eigenen Laufzeitverzeichnis. FAT wird mit `nodev,nosuid,noexec` und den Rechten des aufrufenden Kontos eingehängt. Es gibt kein erzwungenes Aushängen. Die Freigabe erlaubt die Verwendung des Helfers auch außerhalb der Oberfläche; zum Entschlüsseln wird weiterhin das Tresorpasswort benötigt.
+Weitere Grenzen:
 
-## Backup und Wiederherstellung
+- FAT erlaubt keine Einzeldateien ab 4 GiB. Es gibt keine automatische Vergrößerung.
+- Tresorkonten innerhalb eines Linux-Kontos trennen bereits geöffnete Dateien nicht gegenüber anderen Programmen desselben Linux-Benutzers. Für Personen mit unterschiedlichen Zugriffsrechten eigene Linux-Konten verwenden.
+- Ein geöffneter Tresor ist für den berechtigten Linux-Benutzer lesbar. Administratoren, Schadsoftware und bereits entsperrte Sitzungen werden dadurch nicht abgewehrt.
+- Es gibt keine gemeinsamen Tresore, Passwortänderung, Benutzerlöschung, automatische Sperre, Passwortwiederherstellung oder Verwaltung fremder VeraCrypt-Dateien in der Oberfläche.
+- Ein erzwungenes Beenden, Absturz oder Stromausfall garantiert kein sicheres Schließen.
 
-1. Alle Tresore schließen.
-2. Die `.hc`-Dateien und den gesamten Ordner `~/.local/share/minttresor` auf ein anderes Laufwerk sichern. Kontodaten ebenfalls vertraulich behandeln.
-3. Passwörter getrennt und sicher aufbewahren. Ohne Passwort gibt es keinen Zugang.
+## Entwicklung, Tests und Screenshots
 
-Mit einer Containerdatei und dem zugehörigen Passwort kann der Tresor unabhängig von MintTresor in VeraCrypt geöffnet werden. Nach Verlust der Kontodaten gibt es in dieser Version keinen Importassistenten. Beim Wiederherstellen der Kontodaten müssen die gespeicherten absoluten Pfade stimmen; bei Umzug auf einen anderen Rechner ist die direkte Verwendung von VeraCrypt der einfachere Wiederherstellungsweg.
-
-Ein fehlgeschlagener Erstellungsvorgang kann eine unvollständige `.hc`-Datei hinterlassen. Sie wird bewusst nicht automatisch gelöscht. Erst nach Prüfung manuell entfernen; bei fehlgeschlagener Kontoanlage wird kein Benutzer gespeichert.
-
-## Entwicklung und Prüfungen
-
-Ohne Installation im entpackten Projektordner starten:
+Ohne Installation in einer grafischen Linux-Sitzung starten:
 
 ```bash
 python3 -m minttresor
 ```
 
-Alternativ lässt sich die Datei direkt starten, auch mit einem absoluten Pfad:
+Auch `python3 minttresor/app.py`, ein absoluter Dateipfad und `python3 -m minttresor.app` funktionieren. Bei fehlender Oberfläche `sudo apt install python3-tk` ausführen. Die internen Startbefehle behalten ihren Namen.
 
-```bash
-python3 minttresor/app.py
-```
-
-`python3 -m minttresor.app` funktioniert ebenfalls. Die Befehle in einem Terminal der grafischen Linux-Sitzung ausführen. Falls die Oberfläche fehlt, `sudo apt install python3-tk` ausführen. Nach einem Update bei bereits installierter Anwendung `bash install.sh` erneut ausführen; die vorhandenen Konten und Tresore bleiben dabei erhalten.
-
-In Version 0.1.0 fehlte in `app.py` der Aufruf des Startprogramms. Der Modulstart endete deshalb ohne Fenster. Beim direkten Dateistart scheiterte außerdem der relative Import. Beide Startwege sind ab 0.1.1 korrigiert.
-
-Automatisierte Tests ohne VeraCrypt oder Root-Rechte:
+Automatisierte Tests:
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-Abgedeckt sind Anmeldung, falsche Passwörter, doppelte Namen, Passwortvalidierung, Speicherpfade, Dateirechte, fehlgeschlagene Erstellung, Platzmangel und sicherheitsrelevante VeraCrypt-Aufrufe. Die Adaptertests simulieren Systemaufrufe. Zusätzlich wurde lokal ein echter 1-GiB-Container mit VeraCrypt 1.26.31 erstellt und die Oberfläche unter Xvfb durchlaufen.
+Für vollständige GUI-Tests auf einem System ohne Desktop:
 
-Die Starttests prüfen alle drei Startwege auf ein tatsächlich sichtbares Fenster und laufende Ereignisverarbeitung. Dafür ist ein Desktop oder Xvfb nötig; ohne `DISPLAY` wird dieser Test übersprungen. In GitHub Actions läuft die vollständige Suite mit `xvfb-run -a python -m unittest discover -s tests -v`. Außerdem wird geprüft, dass beim Start ohne grafische Sitzung eine verständliche Fehlermeldung und ein Fehlerstatus zurückgegeben werden.
+```bash
+sudo apt install xvfb python3-tk
+xvfb-run -a -s '-screen 0 1366x768x24' python3 -m unittest discover -s tests -v
+```
 
-Vor Freigabe für wichtige Daten auf Linux Mint prüfen:
+Ohne `DISPLAY` werden GUI-Tests ausdrücklich übersprungen. Die UI-Tests verwenden eine echte temporäre Kontodatenbank und einen simulierten VeraCrypt-Adapter. Sie prüfen Navigation, Tastatur, Passworteingabe, Assistent, Hintergrundarbeit, Fehler und sicheres Beenden, nicht die tatsächliche Verschlüsselung. Backend- und Helfertests prüfen unter anderem unveränderte Parameter, Dateirechte, Pfadgrenzen und das Vermeiden sensibler Prozessausgaben.
 
-- Zwei Benutzer anlegen, falsches Passwort und getrennte Container prüfen.
-- Nach einmaliger Einrichtung als Gast ohne sudo-Rechte anmelden: Öffnen und Schließen dürfen keine Adminabfrage zeigen. Ohne Freigabe muss eine verständliche Fehlermeldung erscheinen.
-- Eine LibreOffice-Datei speichern, Tresor schließen, wieder öffnen und Inhalt prüfen.
-- Bei noch geöffneten Dateien das Aushängen versuchen: bei Fehler muss der Tresor geöffnet bleiben.
-- App bei geöffnetem Tresor schließen; danach mit VeraCrypt bzw. `findmnt` kontrollieren, dass er ausgehängt ist.
-- Backup eines geschlossenen Containers in VeraCrypt öffnen.
+Der CI-Job `guest-integration` installiert VeraCrypt 1.26.31 mit fest geprüftem SHA-256, richtet ein Linux-Testkonto ohne allgemeine sudo-Rechte ein und führt einen **echten** Roundtrip aus: erstellen, falsches Passwort ablehnen, öffnen, Datei schreiben, schließen, erneut öffnen und Inhalt lesen. Ein Linux-Mint-Praxistest mit LibreOffice und Screenreader bleibt separat erforderlich.
 
-Der zusätzliche CI-Job `guest-integration` installiert VeraCrypt mit fest geprüftem SHA-256, richtet ein Linux-Testkonto ohne allgemeine sudo-Rechte ein und führt einen echten Container-Roundtrip aus: falsches Passwort ablehnen, öffnen, Datei schreiben, schließen und erneut lesen. Die normalen Helfertests prüfen Pfadgrenzen, Symlinks, Hardlinks, Besitzerprüfung, feste Befehle und passwortlose Aufrufe ohne interaktiven Fallback.
+Das optionale Screenshot-Werkzeug benötigt Pillow nur in der Entwicklungsumgebung:
+
+```bash
+sudo apt install python3-pil
+xvfb-run -a -s '-screen 0 1920x1080x24' python3 tests/capture_ui.py --output /tmp/speicherort-bilder
+```
+
+Alle Aufnahmen verwenden erfundene Testkonten und einen simulierten Adapter. Sie sind keine Nachweise echter Verschlüsselung. Screenshots und der Umfang der ausgeführten Prüfungen stehen im [Prüfbericht](docs/UX-REPORT.md).
 
 ## Deinstallation
 
-Zuerst alle Tresore schließen. Anschließend `~/.local/lib/minttresor`, `~/.local/bin/minttresor` und `~/.local/share/applications/minttresor.desktop` entfernen. Container und Kontodaten bleiben absichtlich erhalten. Ein Administrator kann zusätzlich `/etc/sudoers.d/minttresor-<UID>` und `/etc/minttresor/<UID>.json` für das betroffene Linux-Konto entfernen. Wenn kein Konto den Helfer mehr verwendet, auch `/usr/local/libexec/minttresor-helper` entfernen. Nach Änderungen am Helfer die Gastfreigabe mit dem aktuellen Skript erneut installieren.
+Zuerst alle Tresore schließen. Entferne danach `~/.local/lib/minttresor`, `~/.local/bin/minttresor` und `~/.local/share/applications/minttresor.desktop`. Tresore und Kontodaten bleiben absichtlich erhalten.
+
+Ein Administrator kann zusätzlich `/etc/sudoers.d/minttresor-<UID>` und `/etc/minttresor/<UID>.json` für das betreffende Konto entfernen. Wenn kein Konto den Helfer mehr verwendet, auch `/usr/local/libexec/minttresor-helper` entfernen. Nach Änderungen am Helfer die Gastfreigabe mit dem aktuellen Skript erneut installieren.
 
 ## Lizenz
 

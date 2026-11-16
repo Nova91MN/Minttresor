@@ -16,9 +16,28 @@ class UserError(Exception):
     pass
 
 
+class AuthenticationError(UserError):
+    """The local password check failed, independently of VeraCrypt."""
+
+
+class SetupRequired(UserError):
+    """The administrator must complete the existing restricted setup."""
+
+
+class VaultOperationError(UserError):
+    """An operation failed without a reliably identifiable cause."""
+
+
+def validate_name(name):
+    name = name.strip()
+    if not re.fullmatch(r'[\w .-]{1,40}', name, flags=re.UNICODE):
+        raise UserError('Wähle einen Namen mit 1 bis 40 Zeichen. Erlaubt sind Buchstaben, Zahlen, Leerzeichen, Punkt und Bindestrich.')
+    return name
+
+
 def validate_password(password):
     if len(password) < 12 or len(password.encode('utf-8')) > 128:
-        raise UserError('Bitte ein Passwort mit mindestens 12 Zeichen und höchstens 128 UTF-8-Bytes wählen.')
+        raise UserError('Wähle ein Passwort mit mindestens 12 Zeichen. Falls dein Passwort sehr lang ist, verwende eine kürzere Wortfolge.')
     if any(c in password for c in '\r\n\x00'):
         raise UserError('Das Passwort darf keine Zeilenumbrüche oder Nullzeichen enthalten.')
 
@@ -78,13 +97,11 @@ class Store:
         salt = row['salt'] if row else bytes(16)
         digest = password_hash(password, salt)
         if not row or not hmac.compare_digest(row['digest'], digest):
-            raise UserError('Benutzername oder Passwort stimmt nicht.')
+            raise AuthenticationError('Das Passwort ist leider nicht richtig. Überprüfe deine Eingabe und versuche es erneut.')
         return row
 
     def register(self, name, password, size, backend):
-        name = name.strip()
-        if not re.fullmatch(r'[\w .-]{1,40}', name, flags=re.UNICODE):
-            raise UserError('Benutzername: 1–40 Buchstaben, Zahlen, Leerzeichen, Punkt oder Bindestrich.')
+        name = validate_name(name)
         validate_password(password)
         if self.user(name):
             raise UserError('Dieser Benutzername ist bereits vergeben.')
@@ -118,7 +135,7 @@ class VeraCrypt:
 
     def require(self):
         if not self.binary:
-            raise UserError('VeraCrypt fehlt. Bitte über den Einrichtungsdialog die offizielle Downloadseite öffnen und die Linux-Mint/Ubuntu-Version installieren.')
+            raise SetupRequired('VeraCrypt fehlt noch. Bitte wende dich an die zuständige Person. Hinweise findest du in den Einstellungen.')
 
     def run(self, arguments, password=None):
         self.require()
@@ -130,12 +147,12 @@ class VeraCrypt:
             raise UserError('VeraCrypt konnte nicht gestartet werden.') from exc
         if result.returncode:
             # Do not log subprocess output: keep secrets out of diagnostics.
-            raise UserError('VeraCrypt konnte den Vorgang nicht abschließen. Prüfe das Passwort und den freien Speicher. Beim Schließen: alle Dateien und Ordnerfenster im Tresor schließen und erneut versuchen. Der Tresor wurde nicht als sicher geschlossen bestätigt.')
+            raise VaultOperationError('VeraCrypt konnte den Vorgang nicht abschließen.')
 
     def guest_operation(self, operation, user, password=''):
         helper = Path('/usr/local/libexec/minttresor-helper')
         if not helper.is_file() or not Path('/usr/bin/sudo').is_file():
-            raise UserError('Der Gastzugang ist noch nicht eingerichtet. Ein Administrator muss einmalig setup-guests.sh für dieses Linux-Konto ausführen. Gäste benötigen danach kein Adminpasswort.')
+            raise SetupRequired('Der Gastzugang ist noch nicht eingerichtet. Bitte wende dich an die zuständige Person. Hinweise findest du in den Einstellungen.')
         if Path(user['mount']) != managed_mount(user['volume']):
             raise UserError('Dieser Tresor ist noch mit einer älteren Version geöffnet. Bitte vor dem Update mit der bisherigen Version oder durch einen Administrator schließen.')
         request = json.dumps({'operation': operation, 'volume': user['volume'], 'password': password})
@@ -145,11 +162,16 @@ class VeraCrypt:
         except OSError as exc:
             raise UserError('Die lokale Gastfreigabe konnte nicht gestartet werden.') from exc
         if result.returncode:
-            # The trusted helper only returns fixed messages, never VeraCrypt logs.
+            # Only recognize fixed helper messages. Never relay arbitrary stderr,
+            # even from sudo: it can contain paths, process details or secrets.
             detail = result.stderr.strip()
-            if 'sudo:' in detail or not detail:
-                detail = 'Ein Administrator muss den Gastzugang einmalig mit setup-guests.sh einrichten.'
-            raise UserError(detail[:1000])
+            if 'sudo:' in detail or not detail or detail in (
+                'Konto nicht freigegeben.', 'Kein freigegebenes Benutzerkonto.',
+                'Die Gastfreigabe oder Tresordatei konnte nicht geprüft werden.',
+                'Dieser Speicherort ist noch nicht durch den Administrator freigegeben.',
+            ):
+                raise SetupRequired('Die Freigabe für dein Linux-Konto oder diesen Speicherort konnte nicht bestätigt werden. Bitte wende dich an die zuständige Person.')
+            raise VaultOperationError('Dein Tresor konnte nicht ' + ('geöffnet' if operation == 'open' else 'geschlossen') + ' werden.')
 
     def create(self, volume, password, size):
         # VeraCrypt refuses existing files without --force. Remove only our empty reservation.
@@ -172,7 +194,7 @@ class VeraCrypt:
             raise UserError('Die Tresordatei fehlt. Bitte das Laufwerk mit dem gespeicherten Tresor anschließen.')
         self.guest_operation('open', user, password)
         if not self.mounted(user):
-            raise UserError('Der Tresor wurde nicht eingehängt. Bitte VeraCrypt prüfen.')
+            raise VaultOperationError('Dein Tresor konnte nicht geöffnet werden.')
 
     def close(self, user):
         if self.mounted(user):

@@ -5,13 +5,16 @@ permissions:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        screen: [1366x768x24, 1920x1080x24]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y xvfb python3-tk
-      - run: xvfb-run -a python -m unittest discover -s tests -v
+      - run: xvfb-run -a -s '-screen 0 ${{ matrix.screen }}' python -m unittest discover -s tests -v
   guest-integration:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -33,13 +36,5 @@ jobs:
           sudo mkdir -p /opt/minttresor-test
           sudo cp -R minttresor tests /opt/minttresor-test/
           sudo chmod -R a+rX /opt/minttresor-test
-          # Only this disposable test installation logs VeraCrypt output. All
-          # passwords and containers in this job are generated test fixtures.
-          sudo /usr/bin/python3 -I - <<'PY'
-          from pathlib import Path
-          helper = Path('/usr/local/libexec/minttresor-helper')
-          source = helper.read_text().replace('    if result.returncode:', '    if result.returncode:\n        print(result.stdout, result.stderr, file=sys.stderr)')
-          helper.write_text(source)
-          PY
       - name: Ohne Adminpasswort öffnen, schreiben, schließen und erneut öffnen
         run: sudo -u minttresor-test env PYTHONPATH=/opt/minttresor-test /usr/bin/python3 /opt/minttresor-test/tests/guest_roundtrip.py
