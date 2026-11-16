@@ -22,7 +22,7 @@ def tracked_tk(*args, **kwargs):
     root = original_tk(*args, **kwargs)
     def inspect():
         root.update_idletasks()
-        if root.winfo_viewable() and root.title().startswith('MintTresor') and root.winfo_children():
+        if root.winfo_viewable() and root.title() == 'Speicherort' and root.winfo_children():
             print('MINTTRESOR_WINDOW_OPENED', flush=True)
         root.destroy()
     root.after(150, inspect)

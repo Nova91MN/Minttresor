@@ -5,7 +5,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from minttresor.core import Store, UserError, VeraCrypt, managed_mount
+from minttresor.core import (AuthenticationError, Store, UserError, VaultOperationError,
+                            VeraCrypt, managed_mount)
 
 
 class FakeBackend:
@@ -33,6 +34,16 @@ class Accounts(unittest.TestCase):
             self.store.authenticate('Anna', 'falsch')
         with self.assertRaises(UserError):
             self.store.authenticate('Unbekannt', 'falsch')
+
+    def test_reopening_existing_database_preserves_credentials_and_paths(self):
+        before = self.register()
+        self.store.db.close()
+        self.store = Store(Path(self.tmp.name) / 'data')
+        after = self.store.authenticate('Anna', 'Ein-langes-Passwort-123')
+        for key in ('salt', 'digest', 'volume', 'size', 'mount'):
+            self.assertEqual(before[key], after[key])
+        with self.assertRaises(AuthenticationError):
+            self.store.authenticate('Anna', 'incorrect')
 
     def test_duplicate_does_not_create_another_volume(self):
         self.register()
@@ -103,6 +114,44 @@ class Adapter(unittest.TestCase):
         with self.assertRaises(UserError) as error:
             self.backend.run(['--stdin'], 'secret-test-value')
         self.assertNotIn('secret-test-value', str(error.exception))
+
+    @patch('minttresor.core.Path.is_file', return_value=True)
+    @patch('minttresor.core.subprocess.run')
+    def test_guest_error_never_relays_arbitrary_process_output(self, run, exists):
+        run.return_value = subprocess.CompletedProcess([], 1, '', 'secret-test-value')
+        volume = '/test/' + 'd' * 32 + '.hc'
+        with self.assertRaises(VaultOperationError) as error:
+            self.backend.guest_operation('open', {'volume': volume, 'mount': str(managed_mount(volume))},
+                                         'secret-test-value')
+        self.assertNotIn('secret-test-value', str(error.exception))
+
+    def test_create_preserves_encryption_parameters_and_never_overwrites(self):
+        with tempfile.TemporaryDirectory() as directory:
+            volume = Path(directory) / ('e' * 32 + '.hc')
+            volume.touch()
+            def created(arguments, password):
+                self.assertEqual(password, 'test-fixture-password')
+                for value in ('--volume-type=normal', '--encryption=AES', '--hash=SHA-512',
+                              '--filesystem=FAT', '--pim=0', '--keyfiles=',
+                              '--random-source=/dev/urandom', '--stdin'):
+                    self.assertIn(value, arguments)
+                self.assertNotIn('--force', arguments)
+                volume.write_bytes(b'existing encrypted fixture')
+            with patch.object(self.backend, 'run', side_effect=created) as run:
+                self.backend.create(volume, 'test-fixture-password', 1)
+                with self.assertRaises(UserError):
+                    self.backend.create(volume, 'another-password', 1)
+                self.assertEqual(run.call_count, 1)
+                self.assertEqual(volume.read_bytes(), b'existing encrypted fixture')
+
+    @patch('minttresor.core.subprocess.run')
+    def test_successful_process_does_not_override_a_still_open_mount(self, run):
+        run.return_value = subprocess.CompletedProcess([], 0)
+        volume = '/test/' + 'f' * 32 + '.hc'
+        with patch('minttresor.core.Path.is_file', return_value=True), \
+             patch('minttresor.core.os.path.ismount', return_value=True):
+            with self.assertRaises(UserError):
+                self.backend.close({'volume': volume, 'mount': str(managed_mount(volume))})
 
     @patch('minttresor.core.subprocess.run')
     @patch('minttresor.core.os.path.ismount', return_value=True)
